@@ -1,7 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 
@@ -175,7 +175,7 @@ export function createProxy({
   return server;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const server = createProxy();
   const port = Number(process.env.PORT ?? 8080);
   server.listen(port, '0.0.0.0', () => console.log(`DeepSeek proxy listening on ${port}`));

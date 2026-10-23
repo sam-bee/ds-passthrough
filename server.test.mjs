@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
+import { spawn } from 'node:child_process';
+import { mkdtemp, symlink, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { createProxy } from './server.mjs';
 
@@ -27,6 +32,22 @@ async function fixture(t, handler, options = {}) {
 
 const auth = { authorization: 'Bearer colleague-token' };
 const post = (body = '{}') => ({ method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body });
+
+test('starts when invoked through a Kubernetes-style ConfigMap symlink', { timeout: 5000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'ds-startup-'));
+  const link = join(directory, 'server.mjs');
+  await symlink(fileURLToPath(new URL('./server.mjs', import.meta.url)), link);
+  const child = spawn(process.execPath, [link], { env: { ...process.env, PORT: '0' } });
+  t.after(async () => {
+    child.kill('SIGTERM');
+    await rm(directory, { recursive: true, force: true });
+  });
+  const output = await Promise.race([
+    once(child.stdout, 'data').then(([data]) => data.toString()),
+    once(child, 'exit').then(([code]) => { throw new Error(`Server exited early: ${code}`); }),
+  ]);
+  assert.match(output, /DeepSeek proxy listening/);
+});
 
 test('browser preflight works for file://, localhost and hosted clients without authentication', async (t) => {
   const url = await fixture(t, () => assert.fail('Preflight reached DeepSeek'));
