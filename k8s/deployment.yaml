@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ds-passthrough
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: ds-passthrough
+  template:
+    metadata:
+      labels:
+        app: ds-passthrough
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: proxy
+          image: node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
+          command: [node, /app/server.mjs]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DEEPSEEK_API_KEY_FILE
+              value: /run/secrets/DEEPSEEK_API_KEY
+            - name: PROXY_TOKEN_FILE
+              value: /run/secrets/PROXY_TOKEN
+          resources:
+            requests:
+              cpu: 25m
+              memory: 48Mi
+            limits:
+              cpu: '1'
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          volumeMounts:
+            - name: source
+              mountPath: /app
+              readOnly: true
+            - name: credentials
+              mountPath: /run/secrets
+              readOnly: true
+      volumes:
+        - name: source
+          configMap:
+            name: ds-passthrough-source
+        - name: credentials
+          secret:
+            secretName: ds-passthrough
+            defaultMode: 0440

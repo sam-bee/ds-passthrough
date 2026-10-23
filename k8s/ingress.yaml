@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ds-passthrough
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production-dns01-cloudflare
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [ds.personalinfra.co.uk]
+      secretName: ds-passthrough-tls
+  rules:
+    - host: ds.personalinfra.co.uk
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ds-passthrough
+                port:
+                  name: http

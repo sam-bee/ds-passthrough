@@ -1,0 +1,26 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: ds-passthrough
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/sam-bee/ds-passthrough.git
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ds-passthrough
+  namespace: flux-system
+spec:
+  interval: 1m
+  retryInterval: 30s
+  timeout: 3m
+  sourceRef:
+    kind: GitRepository
+    name: ds-passthrough
+  path: ./
+  prune: true
+  wait: true
