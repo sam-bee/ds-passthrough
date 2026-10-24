@@ -1,6 +1,10 @@
 # DeepSeek passthrough
 
-Public endpoint: **https://ds.personalinfra.co.uk**
+**Retired on 24 October 2026.** The service has been removed from k3s, including its workload, ingress, HTTPS certificate, Kubernetes credentials, and dedicated Flux configuration. Local copies of the proxy token and DeepSeek key have also been removed. Pushing to `main` no longer deploys the service.
+
+The code and deployment manifests are retained for reference. The instructions below describe the previous deployment and can be reused if the service is needed again.
+
+Former endpoint: **https://ds.personalinfra.co.uk**
 
 Replace `https://api.deepseek.com` with that URL and use the **proxy token** as the client API key. The server replaces it with the operator's DeepSeek API key. Your colleague never needs the real DeepSeek key.
 
